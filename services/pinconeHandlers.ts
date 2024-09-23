@@ -60,7 +60,11 @@ export const queryPineconeVectorStoreAndQueryLLM = async (
 
   const index = client.Index(indexName);
 
-  const queryEmbedding = await new OpenAIEmbeddings().embedQuery(question);
+  let updateQuestion = question;
+  
+  updateQuestion = updateQuestion.replace(/\b(?:I|my|mine|me|myself)\b/gi, userName.toLowerCase());
+
+  const queryEmbedding = await new OpenAIEmbeddings().embedQuery(updateQuestion);
   let queryResponse = await index.query({
     topK: 10,
     vector: queryEmbedding,
@@ -87,7 +91,7 @@ export const queryPineconeVectorStoreAndQueryLLM = async (
     _userName: string,
   ) => {
     const staticPrompt = `* User name: "${_userName}"
-* User query: "${question}"
+* User query: "this is${question}"
 * Conversation history: \n\`\`\`${_chatHistory.join('\n')}\`\`\`
 
 Your role:
@@ -129,7 +133,7 @@ Exclude phrases such as "based on the information provided" or "Ah, ${_userName}
       while (newPrompt.includes('{{question}}')) {
         newPrompt = newPrompt.replace('{{question}}', _question);
       }
-      console.log({ newPrompt });
+      newPrompt = newPrompt.replace(/\b(?:I|my|mine|me|myself)\b/gi, _userName.toLowerCase());
       return newPrompt;
     } catch (error) {
       console.log('Error fetching prompt', error);
